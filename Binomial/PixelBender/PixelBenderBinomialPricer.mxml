@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application	
+	xmlns:mx="http://www.adobe.com/2006/mxml"
+	width="400" height="360" 
+	layout="vertical"
+	horizontalAlign="center"
+	styleName="plain" 
+	viewSourceURL="srcview/index.html">
+	
+	<mx:Script>
+		<![CDATA[
+      [Embed("BinomialOptionPricer.pbj", mimeType="application/octet-stream")]
+      private var BinomialOptionPricer:Class;
+ 
+      private function getPrice(  N:Number, //Number of steps
+                                          T:Number, //Time to expiry (in years)
+                                          S:Number, //Spot price of underlying
+                                          K:Number, //Option strike
+                                          v:Number, //Volatility of underlying
+                                          r:Number, //risk-free rate
+                                          NUMOPTIONS:Number 
+                                       ):Number
+      {
+          var dt:Number = T/N; //one time step
+ 
+          var u:Number = 1 + v*Math.sqrt(dt); //up-tick
+          var d:Number = 1 - v*Math.sqrt(dt); //down-tick
+          var p:Number = 0.5 + r*Math.sqrt(dt)/(2*v); //risk-neutral prob. of up-tick
+          var df:Number = 1/(1+r*dt); //discount factor over 1 time step, dt
+ 
+          var optionValues:Vector.<Number> = new Vector.<Number>();
+ 
+          //Populate the fake pixels array 
+          var i:int, j:int, ST:Number;
+          for (j=0; j < NUMOPTIONS; j++)
+          {
+              for (i=0; i < N+1; i++) 
+              {
+                  ST = spot.value * Math.pow(u, i) * Math.pow(d, N-i);
+                  optionValues.push((ST > K)? ST - K : 0);
+                  optionValues.push(0);
+                  optionValues.push(0);
+              }
+          }
+ 
+ 
+          //work backwards to get expected option value at each previous stage
+          var sj:ShaderJob;
+          var shader:Shader = new Shader(new BinomialOptionPricer() as ByteArray);
+          shader.data.src.input = optionValues;
+          shader.data.src.height = NUMOPTIONS;
+          shader.data.p.value = [p];
+          shader.data.df.value = [df];
+          for (i=N; i > 0; i--)
+          {
+              shader.data.src.width = i+1;
+              sj = new ShaderJob(shader, optionValues, i+1, NUMOPTIONS);
+              sj.start(true);
+          }
+ 
+          return optionValues[0]; 
+      }
+			
+			private function calc_Click():void
+			{
+				var start:Number = new Date().time;
+				var result:Number;
+				for (var i:int=0; i < repetitions.value; i++)
+				{
+					result = getPrice(	steps.value, 
+										timeToExpiry.value, 
+										spot.value,
+										strike.value,
+										volatility.value,
+										rate.value);
+				}								
+				price.text = result.toString();			
+				var end:Number = new Date().time;
+				averageTime.text = ((end-start)/repetitions.value).toString() + "ms";
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:Text fontWeight="bold" fontSize="14" text="Pixel Bender N-Step Binomial Option Pricer"/>
+	<mx:Form>
+		<mx:FormItem label="Number of steps (N) :">
+			<mx:NumericStepper id="steps" value="1" maximum="10000" minimum="1"/>
+		</mx:FormItem>
+		<mx:FormItem label="Time to Expiry (T), in years :">
+			<mx:NumericStepper id="timeToExpiry" value="0.5" maximum="1" minimum="0.1" stepSize="0.01"/>
+		</mx:FormItem>
+		<mx:FormItem label="Stock Volatility :">
+			<mx:NumericStepper id="volatility" value="0.2" minimum="0" maximum="1" stepSize="0.01"/>
+		</mx:FormItem>
+		<mx:FormItem label="Strike Price :"> 
+			<mx:NumericStepper id="strike" value="11" minimum="1" maximum="200"/>
+		</mx:FormItem>
+		<mx:FormItem label="Spot Price :">
+			<mx:NumericStepper id="spot" value="10" minimum="1" maximum="200"/>
+		</mx:FormItem>
+		<mx:FormItem label="Risk-free Rate :">
+			<mx:NumericStepper id="rate" value="0.04" minimum="0" maximum="1" stepSize="0.001"/>
+		</mx:FormItem>
+		<mx:Spacer height="10"/>
+		<mx:FormItem label="Repetitions :">
+			<mx:NumericStepper id="repetitions" value="20" minimum="1" maximum="10000"/>
+		</mx:FormItem>
+		<mx:FormItem>
+			<mx:Button label="Calculate Price..." id="calc" click="calc_Click();"/>
+		</mx:FormItem>
+		<mx:FormItem label="Price :">
+			<mx:TextInput width="100%" id="price"/>
+		</mx:FormItem>
+		<mx:FormItem label="Average time taken :">
+			<mx:TextInput width="100%" id="averageTime"/>
+		</mx:FormItem>
+	</mx:Form>
+</mx:Application>

@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application 
+	xmlns:mx="http://www.adobe.com/2006/mxml"
+	width="400" height="360" 
+	layout="vertical"
+	horizontalAlign="center"
+	styleName="plain" 
+	viewSourceURL="srcview/index.html">
+	
+	<mx:Script>
+		<![CDATA[
+			private function calc_Click():void
+			{
+				var start:Number = new Date().time;
+				var result:Number;
+				for (var i:int=0; i < repetitions.value; i++)
+				{
+					result = getPrice(	timeToExpiry.value, 
+										spot.value,
+										strike.value,
+										volatility.value,
+										rate.value);
+				}								
+				price.text = result.toString();			
+				var end:Number = new Date().time;
+				averageTime.text = ((end-start)/repetitions.value).toString() + "ms";
+			}
+		
+			private function getPrice(	T:Number, //Time to expiry (in years)
+										S:Number, //Spot price of underlying
+										K:Number, //Option strike
+										v:Number, //Volatility of underlying
+										r:Number //risk-free rate 
+									 ):Number
+			{
+				//The Black-Scholes option pricing solution for a vanilla call option
+				//on a non-dividend paying stock is as follows :
+				//
+				// V = SN(d1) - Ke^(-rT)N(d2)
+				//
+				//Where N(x) is the cumulative normal distribution function
+				//d1 = (ln(S/K) + (r+0.5*v^2)(T))/(v*sqrt(T))
+				//d2 = d1 - v*sqrt(T)
+				
+				var d1:Number = (Math.log(S/K) + (r + 0.5*v*v)*T)/(v*Math.sqrt(T));
+				var d2:Number = d1 - v*Math.sqrt(T);
+				
+				return S*cnd(d1) - K*Math.exp(-r*T)*cnd(d2);
+			}
+			
+			//Cumulative normal distribution
+			private function cnd(x:Number):Number
+			{
+				//In terms of the error function (ERF) the cnd is :
+				//CND(x) = 0.5 * (1 + ERF(x/sqrt(2)))
+				//
+				//use a simple taylor series expansion for this (4 terms should be enough)
+				//(see : http://en.wikipedia.org/wiki/Error_function#Taylor_series)
+				var z:Number = x/Math.sqrt(2);
+				var ERFz:Number = (2/Math.sqrt(Math.PI))*(z - 
+															Math.pow(z,3)/3 + 
+															Math.pow(z,5)/10 - 
+															Math.pow(z,7)/7 + 
+															Math.pow(z,9)/216);
+				
+				return 0.5 * (1 + ERFz);
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:Text fontWeight="bold" fontSize="14" text="Simple Black-Scholes Option Pricer"/>
+	<mx:Form>
+		<mx:FormItem label="Time to Expiry (T), in years :">
+			<mx:NumericStepper id="timeToExpiry" value="0.5" maximum="1" minimum="0.1" stepSize="0.01"/>
+		</mx:FormItem>
+		<mx:FormItem label="Stock Volatility :">
+			<mx:NumericStepper id="volatility" value="0.2" minimum="0" maximum="1" stepSize="0.01"/>
+		</mx:FormItem>
+		<mx:FormItem label="Strike Price :"> 
+			<mx:NumericStepper id="strike" value="11" minimum="1" maximum="200"/>
+		</mx:FormItem>
+		<mx:FormItem label="Spot Price :">
+			<mx:NumericStepper id="spot" value="10" minimum="1" maximum="200"/>
+		</mx:FormItem>
+		<mx:FormItem label="Risk-free Rate :">
+			<mx:NumericStepper id="rate" value="0.04" minimum="0" maximum="1" stepSize="0.001"/>
+		</mx:FormItem>
+		<mx:Spacer height="10"/>
+		<mx:FormItem label="Repetitions :">
+			<mx:NumericStepper id="repetitions" value="20" minimum="1" maximum="10000"/>
+		</mx:FormItem>
+		<mx:FormItem>
+			<mx:Button label="Calculate Price..." id="calc" click="calc_Click();"/>
+		</mx:FormItem>
+		<mx:FormItem label="Price :">
+			<mx:TextInput width="100%" id="price"/>
+		</mx:FormItem>
+		<mx:FormItem label="Average time taken :">
+			<mx:TextInput width="100%" id="averageTime"/>
+		</mx:FormItem>
+	</mx:Form>
+
+</mx:Application>

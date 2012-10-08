@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application	
+	xmlns:mx="http://www.adobe.com/2006/mxml"
+	width="400" height="360" 
+	layout="vertical"
+	horizontalAlign="center"
+	styleName="plain" 
+	viewSourceURL="srcview/index.html">
+	
+	<mx:Script>
+		<![CDATA[
+			import cmodule.binomial_pricer.CLibInit;
+			
+			private function calc_Click():void
+			{
+				var start:Number = new Date().time;
+				var result:Number;
+				var loader:CLibInit = new CLibInit();
+				var lib:Object = loader.init();
+				for (var i:int=0; i < repetitions.value; i++)
+				{
+					result = lib.getPrice(	steps.value, 
+										timeToExpiry.value, 
+										spot.value,
+										strike.value,
+										volatility.value,
+										rate.value);
+				}								
+				price.text = result.toString();			
+				var end:Number = new Date().time;
+				averageTime.text = ((end-start)/repetitions.value).toString() + "ms";
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:Text fontWeight="bold" fontSize="14" text="Simple N-Step Binomial Option Pricer"/>
+	<mx:Form>
+		<mx:FormItem label="Number of steps (N) :">
+			<mx:NumericStepper id="steps" value="1" maximum="10000" minimum="1"/>
+		</mx:FormItem>
+		<mx:FormItem label="Time to Expiry (T), in years :">
+			<mx:NumericStepper id="timeToExpiry" value="0.5" maximum="1" minimum="0.1" stepSize="0.01"/>
+		</mx:FormItem>
+		<mx:FormItem label="Stock Volatility :">
+			<mx:NumericStepper id="volatility" value="0.2" minimum="0" maximum="1" stepSize="0.01"/>
+		</mx:FormItem>
+		<mx:FormItem label="Strike Price :"> 
+			<mx:NumericStepper id="strike" value="11" minimum="1" maximum="200"/>
+		</mx:FormItem>
+		<mx:FormItem label="Spot Price :">
+			<mx:NumericStepper id="spot" value="10" minimum="1" maximum="200"/>
+		</mx:FormItem>
+		<mx:FormItem label="Risk-free Rate :">
+			<mx:NumericStepper id="rate" value="0.04" minimum="0" maximum="1" stepSize="0.001"/>
+		</mx:FormItem>
+		<mx:Spacer height="10"/>
+		<mx:FormItem label="Repetitions :">
+			<mx:NumericStepper id="repetitions" value="20" minimum="1" maximum="10000"/>
+		</mx:FormItem>
+		<mx:FormItem>
+			<mx:Button label="Calculate Price..." id="calc" click="calc_Click();"/>
+		</mx:FormItem>
+		<mx:FormItem label="Price :">
+			<mx:TextInput width="100%" id="price"/>
+		</mx:FormItem>
+		<mx:FormItem label="Average time taken :">
+			<mx:TextInput width="100%" id="averageTime"/>
+		</mx:FormItem>
+	</mx:Form>
+</mx:Application>

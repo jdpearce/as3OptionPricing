@@ -1,0 +1,24 @@
+<languageVersion : 1.0;>
+ 
+kernel BinomialOptionPricer
+<   namespace : "com.adhocgeek";
+    vendor : "Ad hoc Geek";
+    version : 1;
+    description : "Calculates the one step binomial option price";
+>
+{
+    input image3 src;
+    output pixel3 dst;
+ 
+    parameter float p; //risk-neutral probability of an up-tick
+    parameter float df; //discount factor over one time step
+ 
+    void evaluatePixel()
+    {
+        pixel3 down = sampleNearest(src, outCoord());
+        pixel3 up = sampleNearest(src, outCoord() + float2(1.0, 0));
+        float V = (p*up.x + (1.0-p)*down.x)*df;
+ 
+        dst = pixel3(V, 0, 0);
+    }
+}
